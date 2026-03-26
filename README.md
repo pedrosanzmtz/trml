@@ -1,4 +1,4 @@
-# trml
+# trml (trim logs)
 
 **Compress logs before they hit your LLM context window.**
 
