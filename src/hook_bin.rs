@@ -1,7 +1,7 @@
-/// logslim-hook: Claude Code PreToolUse hook binary.
+/// trml-hook: Claude Code PreToolUse hook binary.
 ///
 /// Reads hook JSON from stdin. If the Bash command reads log files,
-/// rewrites it to pipe through logslim. Outputs modified JSON or nothing.
+/// rewrites it to pipe through trml. Outputs modified JSON or nothing.
 fn main() {
     // Modules are not shared between binaries without a library crate.
     // Re-implement the minimal hook logic here.
@@ -40,10 +40,10 @@ fn rewrite_command(cmd: &str) -> Option<String> {
     if !is_log_reading_command(cmd) {
         return None;
     }
-    if cmd.contains("logslim") {
+    if cmd.contains("trml") {
         return None;
     }
-    Some(format!("{} | logslim", cmd))
+    Some(format!("{} | trml", cmd))
 }
 
 fn is_log_reading_command(cmd: &str) -> bool {

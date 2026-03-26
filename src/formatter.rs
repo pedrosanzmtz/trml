@@ -57,7 +57,7 @@ pub fn write_output(
 pub fn write_stats(stats: &Stats, writer: &mut impl Write) -> std::io::Result<()> {
     writeln!(
         writer,
-        "[logslim] {:>10} lines → {:>6} lines ({:.1}% reduction, ~{:.0}% token reduction)",
+        "[trml] {:>10} lines → {:>6} lines ({:.1}% reduction, ~{:.0}% token reduction)",
         format_number(stats.input_lines),
         format_number(stats.output_lines),
         stats.line_reduction_pct(),

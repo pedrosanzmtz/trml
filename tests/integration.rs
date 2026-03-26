@@ -1,15 +1,15 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 
-fn logslim() -> Command {
-    Command::cargo_bin("logslim").unwrap()
+fn trml() -> Command {
+    Command::cargo_bin("trml").unwrap()
 }
 
 // ── Generic heuristics ────────────────────────────────────────────────────────
 
 #[test]
 fn reads_from_file() {
-    logslim()
+    trml()
         .arg("tests/fixtures/generic-sample.log")
         .assert()
         .success()
@@ -19,7 +19,7 @@ fn reads_from_file() {
 #[test]
 fn reads_from_stdin() {
     let input = "2024-01-15 10:00:00 ERROR Something went wrong\n";
-    logslim()
+    trml()
         .write_stdin(input)
         .assert()
         .success()
@@ -29,7 +29,7 @@ fn reads_from_stdin() {
 #[test]
 fn always_keeps_error_lines() {
     let input = "2024-01-15 10:00:00 ERROR this is important\n";
-    logslim()
+    trml()
         .write_stdin(input)
         .assert()
         .success()
@@ -39,7 +39,7 @@ fn always_keeps_error_lines() {
 #[test]
 fn always_keeps_warn_lines() {
     let input = "2024-01-15 10:00:00 WARN something concerning\n";
-    logslim()
+    trml()
         .write_stdin(input)
         .assert()
         .success()
@@ -54,7 +54,7 @@ fn dedup_collapses_repeated_lines() {
                  2024-01-15 10:00:03 INFO heartbeat OK\n\
                  2024-01-15 10:00:04 INFO heartbeat OK\n\
                  2024-01-15 10:00:05 INFO heartbeat OK\n";
-    let output = logslim()
+    let output = trml()
         .write_stdin(input)
         .assert()
         .success()
@@ -75,7 +75,7 @@ fn drops_debug_by_default() {
     let input = "2024-01-15 10:00:00 DEBUG verbose internal state x=1\n\
                  2024-01-15 10:00:01 DEBUG verbose internal state x=2\n\
                  2024-01-15 10:00:02 ERROR something broke\n";
-    let output = logslim()
+    let output = trml()
         .write_stdin(input)
         .assert()
         .success()
@@ -93,7 +93,7 @@ fn samples_info_lines() {
     let input: String = (0..100)
         .map(|i| format!("2024-01-15 10:00:{:02} INFO processing item {}\n", i % 60, i))
         .collect();
-    let output = logslim()
+    let output = trml()
         .write_stdin(input.clone())
         .assert()
         .success()
@@ -121,7 +121,7 @@ fn stack_trace_compression() {
                  \tat com.example.E.method(E.java:50)\n\
                  \tat java.lang.Thread.run(Thread.java:748)\n\
                  2024-01-15 10:00:01 INFO  normal line after\n";
-    let output = logslim()
+    let output = trml()
         .arg("--level").arg("normal")
         .write_stdin(input)
         .assert()
@@ -139,18 +139,18 @@ fn stack_trace_compression() {
 
 #[test]
 fn stats_flag_writes_to_stderr() {
-    logslim()
+    trml()
         .arg("--stats")
         .arg("tests/fixtures/generic-sample.log")
         .assert()
         .success()
-        .stderr(predicate::str::contains("logslim"));
+        .stderr(predicate::str::contains("trml"));
 }
 
 #[test]
 fn ansi_codes_are_stripped() {
     let input = "\x1b[31mERROR\x1b[0m Something failed\n";
-    let output = logslim()
+    let output = trml()
         .write_stdin(input)
         .assert()
         .success()
@@ -166,7 +166,7 @@ fn ansi_codes_are_stripped() {
 
 #[test]
 fn nifi_profile_file() {
-    logslim()
+    trml()
         .arg("tests/fixtures/nifi-sample.log")
         .assert()
         .success()
@@ -175,7 +175,7 @@ fn nifi_profile_file() {
 
 #[test]
 fn kafka_profile_file() {
-    logslim()
+    trml()
         .arg("tests/fixtures/kafka-sample.log")
         .assert()
         .success()
@@ -190,7 +190,7 @@ fn level_aggressive() {
     let input: String = (0..50)
         .map(|i| format!("2024-01-15 10:00:00 INFO normal line {}\n", i))
         .collect();
-    let normal_output = logslim()
+    let normal_output = trml()
         .arg("--level").arg("normal")
         .write_stdin(input.clone())
         .assert()
@@ -198,7 +198,7 @@ fn level_aggressive() {
         .get_output()
         .stdout
         .clone();
-    let aggressive_output = logslim()
+    let aggressive_output = trml()
         .arg("--level").arg("aggressive")
         .write_stdin(input)
         .assert()
@@ -218,7 +218,7 @@ fn level_aggressive() {
 #[test]
 fn explicit_profile_flag() {
     // Force nifi profile even on generic input
-    logslim()
+    trml()
         .arg("--profile").arg("nifi")
         .arg("tests/fixtures/generic-sample.log")
         .assert()
@@ -230,7 +230,7 @@ fn explicit_profile_flag() {
 #[test]
 fn hook_bin_rewrites_log_command() {
     let input = r#"{"tool_name": "Bash", "tool_input": {"command": "cat app.log"}}"#;
-    let output = Command::cargo_bin("logslim-hook")
+    let output = Command::cargo_bin("trml-hook")
         .unwrap()
         .write_stdin(input)
         .assert()
@@ -240,14 +240,14 @@ fn hook_bin_rewrites_log_command() {
         .clone();
     let text = String::from_utf8(output).unwrap();
     if !text.is_empty() {
-        assert!(text.contains("logslim"), "hook should rewrite to pipe through logslim");
+        assert!(text.contains("trml"), "hook should rewrite to pipe through trml");
     }
 }
 
 #[test]
 fn hook_bin_passes_non_log_commands() {
     let input = r#"{"tool_name": "Bash", "tool_input": {"command": "ls -la"}}"#;
-    let output = Command::cargo_bin("logslim-hook")
+    let output = Command::cargo_bin("trml-hook")
         .unwrap()
         .write_stdin(input)
         .assert()

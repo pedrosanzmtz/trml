@@ -95,12 +95,12 @@ pub fn load() -> Config {
 }
 
 pub fn config_path() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".logslim").join("config.toml"))
+    dirs::home_dir().map(|h| h.join(".trml").join("config.toml"))
 }
 
 pub fn profiles_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".logslim")
+        .join(".trml")
         .join("profiles")
 }

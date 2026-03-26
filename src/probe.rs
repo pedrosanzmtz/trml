@@ -1,4 +1,4 @@
-/// Known service kinds that logslim has built-in awareness of.
+/// Known service kinds that trml has built-in awareness of.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ServiceKind {
     NiFi,

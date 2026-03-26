@@ -49,7 +49,7 @@ This is where it got interesting. Over the course of the session, Claude impleme
 - Stack trace compression — keep the first 3 frames and the last, hide the rest
 - A full profile system with auto-detection for NiFi, Kafka, ClickHouse, Kubernetes, and Redis
 - `--level` (light / normal / aggressive), `--profile`, `--stats`, `--explain`, `--learn` mode
-- Claude Code hook integration via `logslim hook install`
+- Claude Code hook integration via `trml hook install`
 - 19 passing tests
 
 One conversation. No switching to an IDE. No context-switching to a terminal. Just describing the behavior and watching it materialize.

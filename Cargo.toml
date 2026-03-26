@@ -1,16 +1,16 @@
 [package]
-name = "logslim"
+name = "trml"
 version = "0.1.0"
 edition = "2024"
 description = "Compress logs before they reach an LLM context window"
 license = "MIT"
 
 [[bin]]
-name = "logslim"
+name = "trml"
 path = "src/main.rs"
 
 [[bin]]
-name = "logslim-hook"
+name = "trml-hook"
 path = "src/hook_bin.rs"
 
 [dependencies]

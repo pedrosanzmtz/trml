@@ -1,21 +1,21 @@
-# logslim
+# trml
 
 **Compress logs before they hit your LLM context window.**
 
-`logslim` is a fast, single-binary Rust CLI that reads log output from stdin or a file, removes noise, collapses repetition, and writes a compact, agent-readable summary to stdout. It keeps every actionable signal — errors, warnings, stack traces, unique events — while dropping heartbeats, health checks, sampled info lines, and duplicate noise that wastes tokens.
+`trml` is a fast, single-binary Rust CLI that reads log output from stdin or a file, removes noise, collapses repetition, and writes a compact, agent-readable summary to stdout. It keeps every actionable signal — errors, warnings, stack traces, unique events — while dropping heartbeats, health checks, sampled info lines, and duplicate noise that wastes tokens.
 
 ```
-cat nifi-app.log | logslim --stats
-# [logslim]    127,430 lines →    312 lines (99.8% reduction, ~97% token reduction)
+cat nifi-app.log | trml --stats
+# [trml]    127,430 lines →    312 lines (99.8% reduction, ~97% token reduction)
 ```
 
 ---
 
-## Why logslim
+## Why trml
 
 Log files are among the most token-expensive artifacts an AI coding agent reads. A single NiFi or Kafka log can be hundreds of thousands of lines, 99% of which are repeating heartbeats, checkpoint confirmations, and INFO sampling noise. Sending that raw to an LLM costs tokens without adding signal.
 
-`logslim` applies a five-stage pipeline — strip, dedup, filter, stack-trace compression, service profile — to reduce logs by 70–99% while guaranteeing that every error, every unique warning, and every stack trace survives intact.
+`trml` applies a five-stage pipeline — strip, dedup, filter, stack-trace compression, service profile — to reduce logs by 70–99% while guaranteeing that every error, every unique warning, and every stack trace survives intact.
 
 ---
 
@@ -31,7 +31,7 @@ Or clone and build locally:
 git clone https://github.com/pedrosanzmtz/trml
 cd trml
 cargo build --release
-# Binary at: target/release/logslim
+# Binary at: target/release/trml
 ```
 
 Requires Rust 1.85+ (2024 edition).
@@ -43,30 +43,30 @@ Requires Rust 1.85+ (2024 edition).
 ### Pipe from stdin
 
 ```bash
-cat nifi-app.log | logslim
-kubectl logs my-pod | logslim
-tail -f kafka.log | logslim
+cat nifi-app.log | trml
+kubectl logs my-pod | trml
+tail -f kafka.log | trml
 ```
 
 ### Read a file directly
 
 ```bash
-logslim nifi-app.log
-logslim /var/log/kafka/server.log
+trml nifi-app.log
+trml /var/log/kafka/server.log
 ```
 
 ### Compression level
 
 ```bash
-logslim --level light nifi-app.log      # minimal filtering (keep more)
-logslim --level normal nifi-app.log     # default: 1-in-20 INFO sampling
-logslim --level aggressive nifi-app.log # 1-in-50 INFO sampling, 1 stack frame
+trml --level light nifi-app.log      # minimal filtering (keep more)
+trml --level normal nifi-app.log     # default: 1-in-20 INFO sampling
+trml --level aggressive nifi-app.log # 1-in-50 INFO sampling, 1 stack frame
 ```
 
 ### Show what was removed
 
 ```bash
-logslim --explain nifi-app.log
+trml --explain nifi-app.log
 # [KEEP] 2024-01-15 10:00:03 ERROR Failed to send FlowFile to Kafka
 # [DROP] 2024-01-15 10:00:04 INFO heartbeat check OK
 # ...
@@ -75,24 +75,24 @@ logslim --explain nifi-app.log
 ### Print reduction stats
 
 ```bash
-logslim --stats nifi-app.log
-# [logslim]         26 lines →      6 lines (76.9% reduction, ~81% token reduction)
+trml --stats nifi-app.log
+# [trml]         26 lines →      6 lines (76.9% reduction, ~81% token reduction)
 ```
 
 ### Force a specific service profile
 
 ```bash
-logslim --profile nifi nifi-app.log
-logslim --profile kafka kafka-server.log
-logslim --profile kubernetes pod.log
+trml --profile nifi nifi-app.log
+trml --profile kafka kafka-server.log
+trml --profile kubernetes pod.log
 ```
 
 ### Learn a profile from a sample log
 
 ```bash
-logslim --learn nifi-app.log                         # auto-names from detected service
-logslim --learn nifi-app.log --profile-name nifi-dc2 # explicit name
-# Writes ~/.logslim/profiles/nifi.yml
+trml --learn nifi-app.log                         # auto-names from detected service
+trml --learn nifi-app.log --profile-name nifi-dc2 # explicit name
+# Writes ~/.trml/profiles/nifi.yml
 ```
 
 ---
@@ -129,7 +129,7 @@ Each line passes through five stages in order:
 
 ## Service profiles
 
-logslim ships with bundled profiles for the services most likely to produce noisy logs. Profiles are auto-detected from the first 200 lines of input.
+trml ships with bundled profiles for the services most likely to produce noisy logs. Profiles are auto-detected from the first 200 lines of input.
 
 | Profile | Matched by | What gets dropped |
 |---|---|---|
@@ -158,11 +158,11 @@ signal_patterns:
 stack_collapse: true
 ```
 
-Drop custom profiles in `~/.logslim/profiles/` — they are loaded alongside the bundled ones and take priority.
+Drop custom profiles in `~/.trml/profiles/` — they are loaded alongside the bundled ones and take priority.
 
 ### Config file
 
-`~/.logslim/config.toml` (all fields optional):
+`~/.trml/config.toml` (all fields optional):
 
 ```toml
 [defaults]
@@ -181,10 +181,10 @@ show_stats = true    # always print reduction stats to stderr
 
 ## Claude Code hook
 
-Install the `PreToolUse` hook so that any Bash command Claude runs against a log file is automatically piped through `logslim`:
+Install the `PreToolUse` hook so that any Bash command Claude runs against a log file is automatically piped through `trml`:
 
 ```bash
-logslim hook install
+trml hook install
 ```
 
 This patches `~/.claude/settings.json`:
@@ -195,14 +195,14 @@ This patches `~/.claude/settings.json`:
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "~/.cargo/bin/logslim-hook" }]
+        "hooks": [{ "type": "command", "command": "~/.cargo/bin/trml-hook" }]
       }
     ]
   }
 }
 ```
 
-After this, commands like `cat nifi-app.log`, `tail -f kafka.log`, and `kubectl logs my-pod` are automatically rewritten to pipe through `logslim` before their output reaches the context window — zero changes to your workflow.
+After this, commands like `cat nifi-app.log`, `tail -f kafka.log`, and `kubectl logs my-pod` are automatically rewritten to pipe through `trml` before their output reaches the context window — zero changes to your workflow.
 
 ---
 
@@ -214,7 +214,7 @@ After this, commands like `cat nifi-app.log`, `tail -f kafka.log`, and `kubectl 
 
 Tested against four public log datasets from [loghub](https://zenodo.org/records/8196385), ranging from 51k to 655k lines. Both tools run on the same input file; time is wall-clock on an M-series Mac.
 
-| Log file | Input lines | Input size | logslim lines | logslim reduction | `rtk log` lines | `rtk log` reduction | logslim time | `rtk log` time |
+| Log file | Input lines | Input size | trml lines | trml reduction | `rtk log` lines | `rtk log` reduction | trml time | `rtk log` time |
 |---|---|---|---|---|---|---|---|---|
 | **Nginx** (access log) | 51,462 | 7.6 MB | 22,723 | 55.8% ↓ | 4 | ~100% ↓ | 172ms | 87ms |
 | **Apache** (error log) | 56,481 | 4.9 MB | 31,266 | 44.6% ↓ | 25 | ~100% ↓ | 87ms | 91ms |
@@ -239,7 +239,7 @@ Log Summary
    ... +14880 more unique errors
 ```
 
-**`logslim` output** (Apache, 31,266 lines — chronological, deduped):
+**`trml` output** (Apache, 31,266 lines — chronological, deduped):
 ```
 [Thu Jun 09 06:07:05 2005] [error] env.createBean2(): Factory error creating channel.jni:jni
 [Thu Jun 09 06:07:05 2005] [error] config.update(): Can't create channel.jni:jni
@@ -253,9 +253,9 @@ Log Summary
 
 > **`rtk log` answers "how bad is it?"** — a structured digest: total error count, unique error count, top errors by frequency. Fits in ~25 lines regardless of input size.
 >
-> **logslim answers "what happened?"** — a filtered, deduplicated log stream that preserves temporal sequence, event context, and the full text of every unique error. An agent can follow the chain of events that led to a failure.
+> **trml answers "what happened?"** — a filtered, deduplicated log stream that preserves temporal sequence, event context, and the full text of every unique error. An agent can follow the chain of events that led to a failure.
 
-| | logslim | rtk log |
+| | trml | rtk log |
 |---|---|---|
 | **Output format** | Filtered log stream (original lines) | Structured digest (counts + top N) |
 | **Temporal context** | Preserved — LLM can follow event sequences | Lost — only aggregate counts remain |
@@ -268,7 +268,7 @@ Log Summary
 
 ### Known gaps (profiles needed)
 
-logslim's heuristics depend on severity keywords and exact-line deduplication. Three log types expose the limits without a dedicated profile:
+trml's heuristics depend on severity keywords and exact-line deduplication. Three log types expose the limits without a dedicated profile:
 
 - **SSH / auth logs** — every line is unique (different IPs, usernames, PIDs). The pattern `Failed password for invalid user X from Y` is semantically repetitive but textually unique, so dedup doesn't fire. Result: ~0% reduction on 655k lines.
 - **Nginx access logs** — no `ERROR`/`WARN` keywords in access log format. The severity filter passes almost everything through; only exact-duplicate lines get collapsed. A profile treating 2xx as noise and 4xx/5xx as signal is needed.

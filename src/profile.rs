@@ -90,7 +90,7 @@ pub fn bundled_profiles() -> Vec<Profile> {
         .collect()
 }
 
-/// Load user profiles from ~/.logslim/profiles/.
+/// Load user profiles from ~/.trml/profiles/.
 pub fn user_profiles(dir: &Path) -> Vec<Profile> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return vec![];

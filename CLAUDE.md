@@ -1,7 +1,7 @@
-# logslim
+# trml
 
 A Rust CLI tool that compresses logs before they reach an LLM context window.
-Works as a Unix pipe (`cat nifi-app.log | logslim`) and as a Claude Code hook.
+Works as a Unix pipe (`cat nifi-app.log | trml`) and as a Claude Code hook.
 
 ## What this tool does
 
@@ -63,37 +63,37 @@ stdin / file
 
 ```bash
 # Basic pipe usage
-cat nifi-app.log | logslim
-kubectl logs my-pod | logslim
-tail -f kafka.log | logslim
+cat nifi-app.log | trml
+kubectl logs my-pod | trml
+tail -f kafka.log | trml
 
 # File input
-logslim nifi-app.log
+trml nifi-app.log
 
-# Learn mode — infer profile from a sample log, write to ~/.logslim/profiles/
-logslim --learn nifi-app.log
-logslim --learn nifi-app.log --profile-name nifi  # explicit name
+# Learn mode — infer profile from a sample log, write to ~/.trml/profiles/
+trml --learn nifi-app.log
+trml --learn nifi-app.log --profile-name nifi  # explicit name
 
 # Compression level
-logslim --level aggressive nifi-app.log   # signatures only
-logslim --level normal nifi-app.log       # default
-logslim --level light nifi-app.log        # minimal filtering
+trml --level aggressive nifi-app.log   # signatures only
+trml --level normal nifi-app.log       # default
+trml --level light nifi-app.log        # minimal filtering
 
 # Force a specific profile
-logslim --profile nifi nifi-app.log
-logslim --profile kafka kafka.log
+trml --profile nifi nifi-app.log
+trml --profile kafka kafka.log
 
 # Show what was removed (for debugging the tool itself)
-logslim --explain nifi-app.log
+trml --explain nifi-app.log
 
 # Output stats to stderr
-logslim --stats nifi-app.log
-# → [logslim] 127,430 lines → 312 lines (99.7% reduction, ~94% token reduction)
+trml --stats nifi-app.log
+# → [trml] 127,430 lines → 312 lines (99.7% reduction, ~94% token reduction)
 ```
 
 ## Config file
 
-`~/.logslim/config.toml`
+`~/.trml/config.toml`
 
 ```toml
 [defaults]
@@ -103,7 +103,7 @@ sample_debug = 0          # 0 = drop all DEBUG
 
 [profiles]
 auto_detect = true        # match known profiles automatically
-profiles_dir = "~/.logslim/profiles"
+profiles_dir = "~/.trml/profiles"
 
 [output]
 show_stats = true         # print reduction stats to stderr
@@ -111,7 +111,7 @@ show_stats = true         # print reduction stats to stderr
 
 ## Profile format
 
-`~/.logslim/profiles/nifi.yml`
+`~/.trml/profiles/nifi.yml`
 
 ```yaml
 name: nifi
@@ -155,11 +155,11 @@ These apply to every log regardless of format:
 After install, run:
 
 ```bash
-logslim hook install
+trml hook install
 ```
 
 This patches `~/.claude/settings.json` to intercept Bash commands that read
-log files and pipe them through logslim automatically.
+log files and pipe them through trml automatically.
 
 Or manually in `.claude/settings.json`:
 
@@ -172,7 +172,7 @@ Or manually in `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "~/.cargo/bin/logslim-hook"
+            "command": "~/.cargo/bin/trml-hook"
           }
         ]
       }
@@ -184,7 +184,7 @@ Or manually in `.claude/settings.json`:
 ## Crate structure
 
 ```
-logslim/
+trml/
 ├── Cargo.toml
 ├── CLAUDE.md
 ├── src/
@@ -234,7 +234,7 @@ No ML. No network. No async needed.
 - [ ] Kafka profile bundled
 - [ ] `--stats` flag showing reduction metrics on stderr
 - [ ] `--learn` mode writing a profile file
-- [ ] `logslim hook install` patches Claude Code settings
+- [ ] `trml hook install` patches Claude Code settings
 - [ ] Single binary installable via `cargo install`
 - [ ] Works on Linux x86_64 (primary target: on-premises servers)
 

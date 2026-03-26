@@ -1,6 +1,6 @@
 use std::path::Path;
 
-/// Install the logslim hook into Claude Code's settings.json.
+/// Install the trml hook into Claude Code's settings.json.
 pub fn install(settings_path: Option<&Path>) -> std::io::Result<()> {
     let path = if let Some(p) = settings_path {
         p.to_path_buf()
@@ -25,16 +25,16 @@ pub fn install(settings_path: Option<&Path>) -> std::io::Result<()> {
     }
 
     std::fs::write(&path, patched)?;
-    eprintln!("[logslim] Hook installed in {}", path.display());
-    eprintln!("[logslim] Hook binary: {}", hook_bin);
+    eprintln!("[trml] Hook installed in {}", path.display());
+    eprintln!("[trml] Hook binary: {}", hook_bin);
     Ok(())
 }
 
 fn hook_binary_path() -> String {
     dirs::home_dir()
-        .map(|h| h.join(".cargo").join("bin").join("logslim-hook"))
+        .map(|h| h.join(".cargo").join("bin").join("trml-hook"))
         .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "~/.cargo/bin/logslim-hook".to_string())
+        .unwrap_or_else(|| "~/.cargo/bin/trml-hook".to_string())
 }
 
 fn default_settings_path() -> std::io::Result<std::path::PathBuf> {
@@ -76,7 +76,7 @@ fn patch_settings_json(content: &str, hook_cmd: &str) -> String {
     if trimmed.contains("\"hooks\"") {
         // Don't double-patch — warn the user
         eprintln!(
-            "[logslim] Warning: 'hooks' key already exists in settings.json. \
+            "[trml] Warning: 'hooks' key already exists in settings.json. \
             Please add the PreToolUse entry manually:\n{}\n",
             hook_entry
         );
@@ -104,7 +104,7 @@ fn patch_settings_json(content: &str, hook_cmd: &str) -> String {
 }
 
 /// The hook rewrite logic: given a bash command string, if it reads log files,
-/// rewrite it to pipe through logslim.
+/// rewrite it to pipe through trml.
 pub fn rewrite_command(cmd: &str) -> Option<String> {
     // Patterns that read log files
     let is_log_reader = is_log_reading_command(cmd);
@@ -112,13 +112,13 @@ pub fn rewrite_command(cmd: &str) -> Option<String> {
         return None;
     }
 
-    // Check if logslim is already in the pipeline
-    if cmd.contains("logslim") {
+    // Check if trml is already in the pipeline
+    if cmd.contains("trml") {
         return None;
     }
 
-    // Append | logslim to the command
-    Some(format!("{} | logslim", cmd))
+    // Append | trml to the command
+    Some(format!("{} | trml", cmd))
 }
 
 fn is_log_reading_command(cmd: &str) -> bool {
@@ -209,14 +209,14 @@ mod tests {
         assert!(rewrite_command("kubectl logs my-pod").is_some());
         assert!(rewrite_command("kubectl logs my-pod").is_some());
         assert!(rewrite_command("ls -la").is_none());
-        assert!(rewrite_command("cat app.log | logslim").is_none());
+        assert!(rewrite_command("cat app.log | trml").is_none());
     }
 
     #[test]
     fn test_patch_settings_empty() {
-        let result = patch_settings_json("{}", "/usr/local/bin/logslim-hook");
+        let result = patch_settings_json("{}", "/usr/local/bin/trml-hook");
         assert!(result.contains("PreToolUse"));
-        assert!(result.contains("logslim-hook"));
+        assert!(result.contains("trml-hook"));
     }
 
     #[test]

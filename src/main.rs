@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use std::io::{self, BufRead, IsTerminal};
 
 #[derive(Parser)]
-#[command(name = "logslim", about = "Compress logs before they reach an LLM context window")]
+#[command(name = "trml", about = "Compress logs before they reach an LLM context window")]
 struct Cli {
     /// Input file (defaults to stdin)
     file: Option<String>,
@@ -24,7 +24,7 @@ struct Cli {
     #[arg(long, value_name = "NAME")]
     profile: Option<String>,
 
-    /// Infer a profile from the input and write to ~/.logslim/profiles/
+    /// Infer a profile from the input and write to ~/.trml/profiles/
     #[arg(long)]
     learn: bool,
 
@@ -96,7 +96,7 @@ fn main() {
             HookAction::Install { settings } => {
                 let path = settings.as_deref().map(std::path::Path::new);
                 if let Err(e) = hook::install(path) {
-                    eprintln!("[logslim] Error installing hook: {}", e);
+                    eprintln!("[trml] Error installing hook: {}", e);
                     std::process::exit(1);
                 }
             }
@@ -141,7 +141,7 @@ fn main() {
             pipeline::follow_stdin(&pipeline_cfg, active_profile, use_color, &mut out)
         };
         if let Err(e) = result {
-            eprintln!("[logslim] {}", e);
+            eprintln!("[trml] {}", e);
         }
         return;
     }
@@ -160,17 +160,17 @@ fn main() {
         match learn::learn(&lines, name, &dir) {
             Ok(result) => {
                 eprintln!(
-                    "[logslim] Learned profile '{}' → {}",
+                    "[trml] Learned profile '{}' → {}",
                     result.profile_name,
                     result.profile_path.display()
                 );
                 eprintln!(
-                    "[logslim] {} noise patterns, {} signal patterns",
+                    "[trml] {} noise patterns, {} signal patterns",
                     result.noise_count, result.signal_count
                 );
             }
             Err(e) => {
-                eprintln!("[logslim] Error writing profile: {}", e);
+                eprintln!("[trml] Error writing profile: {}", e);
                 std::process::exit(1);
             }
         }
@@ -203,7 +203,7 @@ fn main() {
     }
 
     if let Err(e) = formatter::write_output(&result.lines, &mut out, use_color) {
-        eprintln!("[logslim] Error writing output: {}", e);
+        eprintln!("[trml] Error writing output: {}", e);
         std::process::exit(1);
     }
 
@@ -212,7 +212,7 @@ fn main() {
         let stderr = io::stderr();
         let mut err = io::BufWriter::new(stderr.lock());
         if let Err(e) = formatter::write_stats(&result.stats, &mut err) {
-            eprintln!("[logslim] Error writing stats: {}", e);
+            eprintln!("[trml] Error writing stats: {}", e);
         }
     }
 }
@@ -221,7 +221,7 @@ fn read_input(file: Option<&str>) -> Vec<String> {
     match file {
         Some(path) => {
             let file = std::fs::File::open(path).unwrap_or_else(|e| {
-                eprintln!("[logslim] Cannot open '{}': {}", path, e);
+                eprintln!("[trml] Cannot open '{}': {}", path, e);
                 std::process::exit(1);
             });
             io::BufReader::new(file)
@@ -243,7 +243,7 @@ fn read_tail(file: Option<&str>, n: usize) -> Vec<String> {
     let reader: Box<dyn BufRead> = match file {
         Some(path) => {
             let f = std::fs::File::open(path).unwrap_or_else(|e| {
-                eprintln!("[logslim] Cannot open '{}': {}", path, e);
+                eprintln!("[trml] Cannot open '{}': {}", path, e);
                 std::process::exit(1);
             });
             Box::new(io::BufReader::new(f))
