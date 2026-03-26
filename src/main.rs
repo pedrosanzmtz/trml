@@ -8,7 +8,7 @@ mod profile;
 mod stages;
 
 use clap::{Parser, Subcommand};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, IsTerminal};
 
 #[derive(Parser)]
 #[command(name = "logslim", about = "Compress logs before they reach an LLM context window")]
@@ -39,6 +39,30 @@ struct Cli {
     /// Show what was removed (for debugging the tool itself)
     #[arg(long)]
     explain: bool,
+
+    /// Keep N lines of context before and after each ERROR/WARN
+    #[arg(long, value_name = "N")]
+    context: Option<usize>,
+
+    /// Process only the last N lines of the input file
+    #[arg(long, value_name = "N")]
+    tail: Option<usize>,
+
+    /// Skip lines with timestamps before this value (e.g. "2024-01-15 10:00:00")
+    #[arg(long, value_name = "TIMESTAMP")]
+    since: Option<String>,
+
+    /// Skip lines with timestamps after this value
+    #[arg(long, value_name = "TIMESTAMP")]
+    until: Option<String>,
+
+    /// Collapse interleaved repeated lines using a frequency map (non-consecutive dedup)
+    #[arg(long)]
+    nonconseq_dedup: bool,
+
+    /// Follow the file/stdin for new lines (like tail -f), with live filtering
+    #[arg(long)]
+    follow: bool,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -83,15 +107,55 @@ fn main() {
     let cfg = config::load();
     let level = pipeline::Level::from_str(&cli.level);
 
-    // Read input lines
-    let lines = read_input(cli.file.as_deref());
+    // Determine common pipeline config
+    let mut pipeline_cfg = pipeline::PipelineConfig::from_config(&cfg, level);
+    pipeline_cfg.explain = cli.explain;
+    pipeline_cfg.context_lines = cli.context.unwrap_or(0);
+    pipeline_cfg.nonconseq_dedup = cli.nonconseq_dedup;
+    pipeline_cfg.since_ts = cli.since.clone();
+    pipeline_cfg.until_ts = cli.until.clone();
+
+    // Profile list (bundled + user)
+    let profiles_dir = config::profiles_dir();
+    let all_profiles: Vec<profile::Profile> = {
+        let mut p = profile::bundled_profiles();
+        p.extend(profile::user_profiles(&profiles_dir));
+        p
+    };
+
+    // --follow mode: live tail with filtering
+    if cli.follow {
+        let use_color = io::stdout().is_terminal();
+        let stdout = io::stdout();
+        let mut out = io::BufWriter::new(stdout.lock());
+
+        let active_profile: Option<profile::Profile> = if let Some(name) = &cli.profile {
+            all_profiles.into_iter().find(|p| p.name == *name)
+        } else {
+            None // profile auto-detection not supported in follow mode
+        };
+
+        let result = if let Some(ref path) = cli.file {
+            pipeline::follow_file(path, &pipeline_cfg, active_profile, use_color, &mut out)
+        } else {
+            pipeline::follow_stdin(&pipeline_cfg, active_profile, use_color, &mut out)
+        };
+        if let Err(e) = result {
+            eprintln!("[logslim] {}", e);
+        }
+        return;
+    }
+
+    // Read all lines for learn/batch modes
+    let lines = if let Some(tail_n) = cli.tail {
+        read_tail(cli.file.as_deref(), tail_n)
+    } else {
+        read_input(cli.file.as_deref())
+    };
 
     // Learn mode
     if cli.learn {
-        let name = cli
-            .profile_name
-            .as_deref()
-            .unwrap_or("");
+        let name = cli.profile_name.as_deref().unwrap_or("");
         let dir = config::profiles_dir();
         match learn::learn(&lines, name, &dir) {
             Ok(result) => {
@@ -113,14 +177,7 @@ fn main() {
         return;
     }
 
-    // Determine active profile
-    let profiles_dir = config::profiles_dir();
-    let all_profiles: Vec<profile::Profile> = {
-        let mut p = profile::bundled_profiles();
-        p.extend(profile::user_profiles(&profiles_dir));
-        p
-    };
-
+    // Detect active profile
     let active_profile: Option<&profile::Profile> = if let Some(name) = &cli.profile {
         all_profiles.iter().find(|p| p.name == *name)
     } else if cfg.profiles.auto_detect {
@@ -129,14 +186,11 @@ fn main() {
         None
     };
 
-    // Build pipeline config
-    let mut pipeline_cfg = pipeline::PipelineConfig::from_config(&cfg, level);
-    pipeline_cfg.explain = cli.explain;
-
     // Run pipeline
     let result = pipeline::run(lines, &pipeline_cfg, active_profile);
 
     // Output
+    let use_color = io::stdout().is_terminal();
     let stdout = io::stdout();
     let mut out = io::BufWriter::new(stdout.lock());
 
@@ -148,7 +202,7 @@ fn main() {
         }
     }
 
-    if let Err(e) = formatter::write_output(&result.lines, &mut out) {
+    if let Err(e) = formatter::write_output(&result.lines, &mut out, use_color) {
         eprintln!("[logslim] Error writing output: {}", e);
         std::process::exit(1);
     }
@@ -180,4 +234,29 @@ fn read_input(file: Option<&str>) -> Vec<String> {
             stdin.lock().lines().filter_map(|l| l.ok()).collect()
         }
     }
+}
+
+/// Read only the last N lines using a ring buffer (memory-efficient for large files).
+fn read_tail(file: Option<&str>, n: usize) -> Vec<String> {
+    use std::collections::VecDeque;
+
+    let reader: Box<dyn BufRead> = match file {
+        Some(path) => {
+            let f = std::fs::File::open(path).unwrap_or_else(|e| {
+                eprintln!("[logslim] Cannot open '{}': {}", path, e);
+                std::process::exit(1);
+            });
+            Box::new(io::BufReader::new(f))
+        }
+        None => Box::new(io::BufReader::new(io::stdin())),
+    };
+
+    let mut ring: VecDeque<String> = VecDeque::with_capacity(n + 1);
+    for line in reader.lines().filter_map(|l| l.ok()) {
+        if ring.len() >= n {
+            ring.pop_front();
+        }
+        ring.push_back(line);
+    }
+    ring.into_iter().collect()
 }

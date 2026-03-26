@@ -18,7 +18,7 @@ pub struct ProfileDef {
 }
 
 /// Compiled profile ready for use.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Profile {
     pub name: String,
     pub match_strings: Vec<String>,
@@ -76,6 +76,10 @@ const BUNDLED: &[(&str, &str)] = &[
     ("clickhouse", include_str!("../profiles/clickhouse.yml")),
     ("kubernetes", include_str!("../profiles/kubernetes.yml")),
     ("redis", include_str!("../profiles/redis.yml")),
+    ("mongodb", include_str!("../profiles/mongodb.yml")),
+    ("nginx", include_str!("../profiles/nginx.yml")),
+    ("gc", include_str!("../profiles/gc.yml")),
+    ("elasticsearch", include_str!("../profiles/elasticsearch.yml")),
 ];
 
 /// Load all bundled profiles.

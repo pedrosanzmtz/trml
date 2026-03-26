@@ -1,0 +1,32 @@
+name: elasticsearch
+match:
+  - "[o.e."
+  - "org.elasticsearch"
+  - "Elasticsearch"
+  - "[cluster.service"
+  - "[indices.recovery"
+  - "elasticsearch"
+
+noise_patterns:
+  - ".*\\[o\\.e\\.cluster\\.service.*\\] .* cluster state update.*"
+  - ".*\\[o\\.e\\.cluster\\.routing.*\\].*"
+  - ".*\\[o\\.e\\.discovery.*\\].*"
+  - ".*\\[o\\.e\\.transport.*\\] .*connected.*"
+  - ".*\\[o\\.e\\.indices\\.store.*\\] .*deleting index.*"
+  - ".*publishing cluster state.*"
+  - ".*node-join.*"
+  - ".*elected-as-master.*"
+
+signal_patterns:
+  - ".*\\[o\\.e\\..*\\] .* disconnected.*"
+  - ".*failed shard.*"
+  - ".*OutOfMemoryError.*"
+  - ".*\\[RED\\].*"
+  - ".*shard routing failure.*"
+  - ".*master not discovered.*"
+  - ".*FailedNode.*"
+  - ".*rejected execution.*"
+  - ".*circuit_breaking_exception.*"
+  - ".*\\[o\\.e\\..*\\] .*Exception.*"
+
+stack_collapse: true
