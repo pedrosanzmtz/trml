@@ -1,0 +1,33 @@
+name: mongodb
+match:
+  - "mongod"
+  - "MongoDB"
+  - "NETWORK  [conn"
+  - "COMMAND  ["
+  - "STORAGE ["
+
+noise_patterns:
+  - ".*NETWORK.*end connection.*"
+  - ".*NETWORK.*new connection.*"
+  - ".*COMMAND.*\"getMore\".*"
+  - ".*COMMAND.*\"isMaster\".*"
+  - ".*COMMAND.*\"hello\".*"
+  - ".*COMMAND.*\"ping\".*"
+  - ".*COMMAND.*\"buildInfo\".*"
+  - ".*REPL_HB.*"
+  - ".*CONTROL.*WiredTiger.*"
+  - ".*STORAGE.*WiredTiger.*checkpoint.*"
+  - ".*INDEX.*Starting.*"
+
+signal_patterns:
+  - ".*NETWORK.*SocketException.*"
+  - ".*COMMAND.*Executor error.*"
+  - ".*fassert.*"
+  - ".*CONTROL.*Shutting down.*"
+  - ".*WT_ERROR.*"
+  - ".*out of memory.*"
+  - ".*exiting.*"
+  - ".*STORAGE.*error.*"
+  - ".*assert.*MONGO_UNREACHABLE.*"
+
+stack_collapse: true

@@ -9,6 +9,8 @@ pub enum ServiceKind {
     Docker,
     Python,
     MongoDB,
+    Nginx,
+    Elasticsearch,
     Generic,
 }
 
@@ -98,6 +100,18 @@ fn detect_service(lines: &[String]) -> ServiceKind {
     }
     if combined.contains("mongod") || combined.contains("MongoDB") || combined.contains("NETWORK  [conn") {
         return ServiceKind::MongoDB;
+    }
+    if combined.contains("[o.e.") || combined.contains("org.elasticsearch") || combined.contains("Elasticsearch") {
+        return ServiceKind::Elasticsearch;
+    }
+    // Nginx/Apache: combined access log pattern "METHOD /path HTTP/1." with status codes
+    let nginx_score = lines.iter().take(50).filter(|l| {
+        (l.contains("\" 200 ") || l.contains("\" 404 ") || l.contains("\" 500 "))
+            && (l.contains("GET ") || l.contains("POST ") || l.contains("HEAD "))
+            && l.contains("HTTP/")
+    }).count();
+    if nginx_score * 3 > lines.len().min(50) {
+        return ServiceKind::Nginx;
     }
     if combined.contains("\"level\"") || combined.contains("\"msg\"") || combined.contains("\"message\"") {
         return ServiceKind::Python;

@@ -1,10 +1,54 @@
 use crate::pipeline::{ExplainLine, Stats};
 use std::io::Write;
 
-/// Write the compressed output lines to `writer`.
-pub fn write_output(lines: &[String], writer: &mut impl Write) -> std::io::Result<()> {
+// ANSI color codes
+const RED: &str = "\x1b[31m";
+const YELLOW: &str = "\x1b[33m";
+const DIM: &str = "\x1b[2m";
+const RESET: &str = "\x1b[0m";
+
+/// Apply ANSI colors to a single output line based on its content.
+/// ERROR/FATAL/CRITICAL → red, WARN → yellow, dedup annotations → dim.
+pub fn colorize(line: &str) -> String {
+    // Dedup annotations (dim gray)
+    if line.contains("[repeated x") || line.contains("] [x") {
+        // Find the annotation start
+        if let Some(pos) = line.rfind(" [repeated x").or_else(|| line.rfind(" [x")) {
+            let (body, annotation) = line.split_at(pos);
+            return format!("{}{}{}{}", body, DIM, annotation, RESET);
+        }
+    }
+
+    // Severity-based coloring (look for level keyword)
+    let upper = line.to_uppercase();
+    // Check for fatal/error keywords before warn to pick strongest signal
+    if upper.contains(" ERROR ")
+        || upper.contains("[ERROR]")
+        || upper.contains("FATAL")
+        || upper.contains("CRITICAL")
+        || upper.contains("SEVERE")
+    {
+        return format!("{}{}{}", RED, line, RESET);
+    }
+    if upper.contains(" WARN ") || upper.contains("[WARN]") || upper.contains("WARNING") {
+        return format!("{}{}{}", YELLOW, line, RESET);
+    }
+
+    line.to_string()
+}
+
+/// Write the compressed output lines to `writer`, with optional color.
+pub fn write_output(
+    lines: &[String],
+    writer: &mut impl Write,
+    use_color: bool,
+) -> std::io::Result<()> {
     for line in lines {
-        writeln!(writer, "{}", line)?;
+        if use_color {
+            writeln!(writer, "{}", colorize(line))?;
+        } else {
+            writeln!(writer, "{}", line)?;
+        }
     }
     Ok(())
 }
@@ -41,7 +85,6 @@ pub fn write_explain(explain: &[ExplainLine], writer: &mut impl Write) -> std::i
 }
 
 fn format_number(n: usize) -> String {
-    // Simple comma-separated thousands formatting
     let s = n.to_string();
     let mut result = String::new();
     for (i, ch) in s.chars().rev().enumerate() {

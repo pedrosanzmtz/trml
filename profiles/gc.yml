@@ -1,0 +1,30 @@
+name: gc
+match:
+  - "GC pause"
+  - "Full GC"
+  - "GC("
+  - "Pause Full"
+  - "GCLocker"
+  - "[GC "
+  - "Heap after GC"
+
+noise_patterns:
+  - ".*GC\\(\\d+\\) Pause Young \\(Normal\\).*"
+  - ".*GC\\(\\d+\\) Pause Young \\(Prepare Mixed\\).*"
+  - ".*GC\\(\\d+\\) Pause Young \\(Mixed\\).*"
+  - ".*GC\\(\\d+\\) Concurrent.*"
+  - ".*\\[GC \\(Allocation Failure\\).*->.*\\(.*\\).*ms\\].*"
+  - ".*\\[GC \\(Metadata GC Threshold\\).*"
+  - ".*\\[ParNew.*"
+
+signal_patterns:
+  - ".*Full GC.*"
+  - ".*Pause Full.*"
+  - ".*OutOfMemoryError.*"
+  - ".*GCLocker Initiated GC.*"
+  - ".*Concurrent Mode Failure.*"
+  - ".*promotion failed.*"
+  - ".*Ergonomics.*"
+  - ".*\\[CMS-concurrent-aborted\\].*"
+
+stack_collapse: true

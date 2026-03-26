@@ -1,0 +1,29 @@
+name: nginx
+match:
+  - "nginx"
+  - "upstream"
+  - "\" 200 "
+  - "\" 404 "
+  - "HTTP/1."
+
+noise_patterns:
+  - ".*\" 200 .*"
+  - ".*\" 201 .*"
+  - ".*\" 204 .*"
+  - ".*\" 206 .*"
+  - ".*\" 301 .*"
+  - ".*\" 302 .*"
+  - ".*\" 304 .*"
+
+signal_patterns:
+  - ".*\" 4[0-9][0-9] .*"
+  - ".*\" 5[0-9][0-9] .*"
+  - ".*connect\\(\\) failed.*"
+  - ".*upstream timed out.*"
+  - ".*upstream sent invalid.*"
+  - ".*no live upstreams.*"
+  - ".*worker process.*exited.*"
+  - ".*recv\\(\\) failed.*"
+  - ".*SSL.*error.*"
+
+stack_collapse: false

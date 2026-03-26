@@ -1,9 +1,9 @@
-use crate::profile::Profile;
+use crate::{
+    profile::Profile,
+    stages::Stage,
+};
 
-/// Apply profile noise/signal patterns.
-///
-/// Signal patterns override noise: if a line matches a signal pattern it is
-/// always kept. If a line matches only noise patterns it is dropped.
+/// Batch process (used in explain instrumentation).
 pub fn process(lines: Vec<String>, profile: &Profile) -> Vec<String> {
     lines
         .into_iter()
@@ -17,4 +17,31 @@ pub fn process(lines: Vec<String>, profile: &Profile) -> Vec<String> {
             true
         })
         .collect()
+}
+
+/// Streaming stage for profile-based noise/signal filtering.
+pub struct ProfileStage {
+    profile: Profile,
+}
+
+impl ProfileStage {
+    pub fn new(profile: Profile) -> Self {
+        Self { profile }
+    }
+}
+
+impl Stage for ProfileStage {
+    fn push(&mut self, line: String) -> Vec<String> {
+        if self.profile.is_signal(&line) {
+            return vec![line];
+        }
+        if self.profile.is_noise(&line) {
+            return vec![];
+        }
+        vec![line]
+    }
+
+    fn flush(&mut self) -> Vec<String> {
+        vec![]
+    }
 }
