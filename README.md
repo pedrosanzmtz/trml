@@ -210,55 +210,69 @@ After this, commands like `cat nifi-app.log`, `tail -f kafka.log`, and `kubectl 
 
 [RTK](https://github.com/rtk-ai/rtk) ("Rust Token Killer") is a general-purpose CLI proxy that wraps developer commands — `git status`, `cargo test`, `kubectl` — and compresses their output. It includes a `log` subcommand. Both tools reduce log token usage; they make different trade-offs.
 
-### Benchmark — same three log files, same input
+### Real-world benchmark
 
-| File | Input | logslim lines | rtk log lines | logslim bytes | rtk log bytes |
-|---|---|---|---|---|---|
-| NiFi (26 lines) | 2,540 B | **6 (77% ↓)** | 11 (58% ↓) | 474 B (81% ↓) | 426 B **(83% ↓)** |
-| Generic (28 lines) | 1,526 B | **7 (75% ↓)** | 10 (65% ↓) | 422 B (73% ↓) | 256 B **(84% ↓)** |
-| Kafka (21 lines) | 2,791 B | **7 (67% ↓)** | 11 (48% ↓) | 694 B (76% ↓) | 411 B **(86% ↓)** |
+Tested against four public log datasets from [loghub](https://zenodo.org/records/8196385), ranging from 51k to 655k lines. Both tools run on the same input file; time is wall-clock on an M-series Mac.
+
+| Log file | Input lines | Input size | logslim lines | logslim reduction | `rtk log` lines | `rtk log` reduction | logslim time | `rtk log` time |
+|---|---|---|---|---|---|---|---|---|
+| **Nginx** (access log) | 51,462 | 7.6 MB | 22,723 | 55.8% ↓ | 4 | ~100% ↓ | 172ms | 87ms |
+| **Apache** (error log) | 56,481 | 4.9 MB | 31,266 | 44.6% ↓ | 25 | ~100% ↓ | 87ms | 91ms |
+| **Zookeeper** | 74,380 | 9.9 MB | 53,779 | 27.7% ↓ | 25 | ~100% ↓ | 170ms | 84ms |
+| **SSH** (auth log) | 655,146 | 70 MB | 654,968 | ~0% ↓ | 25 | ~100% ↓ | 1,464ms | 555ms |
 
 ### What the outputs actually look like
 
-**`rtk log` output** (NiFi, 11 lines):
+The tools solve fundamentally different problems. The Apache error log (56k lines) illustrates the contrast clearly.
+
+**`rtk log` output** (Apache, 25 lines total):
 ```
 Log Summary
-   [error] 2 errors (2 unique)
-   [warn] 1 warnings (1 unique)
-   [info] 20 info messages
+   [error] 38081 errors (14890 unique)
+   [warn] 168 warnings (31 unique)
+   [info] 0 info messages
 
 [ERRORS]
-   2024-01-15 10:00:03,001 ERROR [FlowEngine-1] o.a.nifi.processor.PutKafka Failed to send FlowFile ...
-   org.apache.kafka.common.errors.TimeoutException: Failed to update metadata after 60000 ms.
-
-[WARNINGS]
-   2024-01-15 10:00:05,001 WARN [FlowEngine-1] o.a.nifi.controller.BackPressure Queue is full (10000...
+   [×200] [Tue Nov 29 06:12:12 2005] [error] [client 210.245.233.251] File does not exist: /var/www/html/log
+   [×136] [Tue Nov 15 12:48:08 2005] [error] [client 201.6.53.88] File does not exist: /var/www/html/cp
+   [×105] [Thu Nov 17 21:46:53 2005] [error] [client 220.194.61.230] File does not exist: /var/www/html/blog
+   ... +14880 more unique errors
 ```
 
-**`logslim` output** (NiFi, 6 lines):
+**`logslim` output** (Apache, 31,266 lines — chronological, deduped):
 ```
-2024-01-15 10:00:00,001 INFO [main] o.a.nifi.NiFiServer NiFi has started.
-2024-01-15 10:00:03,001 ERROR [FlowEngine-1] o.a.nifi.processor.PutKafka Failed to send FlowFile to Kafka
-org.apache.kafka.common.errors.TimeoutException: Failed to update metadata after 60000 ms.
-	at org.apache.kafka.clients.producer.internals.Sender.run(Sender.java:238)
-	at java.lang.Thread.run(Thread.java:748)
-2024-01-15 10:00:05,001 WARN [FlowEngine-1] o.a.nifi.controller.BackPressure Queue is full (10000/10000)
+[Thu Jun 09 06:07:05 2005] [error] env.createBean2(): Factory error creating channel.jni:jni
+[Thu Jun 09 06:07:05 2005] [error] config.update(): Can't create channel.jni:jni
+[Thu Jun 09 06:07:19 2005] [notice] jk2_init() Found child 2330 in scoreboard slot 0 [repeated x8]
+[Thu Jun 09 07:11:21 2005] [error] [client 204.100.200.22] Directory index forbidden by rule [repeated x12]
+[Thu Jun 09 19:23:31 2005] [error] [client 81.199.21.119] File does not exist: /var/www/html/sumthin [repeated x16]
+...
 ```
 
-### Trade-off summary
+### The core trade-off
+
+> **`rtk log` answers "how bad is it?"** — a structured digest: total error count, unique error count, top errors by frequency. Fits in ~25 lines regardless of input size.
+>
+> **logslim answers "what happened?"** — a filtered, deduplicated log stream that preserves temporal sequence, event context, and the full text of every unique error. An agent can follow the chain of events that led to a failure.
 
 | | logslim | rtk log |
 |---|---|---|
-| **Line reduction** | Better (67–77%) | Weaker (48–65%) |
-| **Byte reduction** | Good (73–81%) | Better (83–86%) |
+| **Output format** | Filtered log stream (original lines) | Structured digest (counts + top N) |
+| **Temporal context** | Preserved — LLM can follow event sequences | Lost — only aggregate counts remain |
+| **Dedup style** | `[repeated x8]` inline, in sequence | `[×200]` aggregated across whole file |
 | **Line fidelity** | Full text preserved | Truncated at ~80 chars |
 | **Stack traces** | Head + tail frames kept | Exception message only |
 | **INFO context** | Sampled (startup, state changes) | All INFO dropped |
-| **Output format** | Original log format | Reformatted digest |
 | **Service profiles** | NiFi, Kafka, ClickHouse, k8s, Redis | None |
 | **Scope** | Log files and streams | Any CLI command |
 
-RTK achieves smaller byte counts by truncating long lines and dropping all INFO. logslim's goal is the smallest output that remains **fully actionable**: an agent reading logslim output can identify the error class, locate the failing frame, and understand the application state at the time of failure — without needing to re-fetch the original log.
+### Known gaps (profiles needed)
+
+logslim's heuristics depend on severity keywords and exact-line deduplication. Three log types expose the limits without a dedicated profile:
+
+- **SSH / auth logs** — every line is unique (different IPs, usernames, PIDs). The pattern `Failed password for invalid user X from Y` is semantically repetitive but textually unique, so dedup doesn't fire. Result: ~0% reduction on 655k lines.
+- **Nginx access logs** — no `ERROR`/`WARN` keywords in access log format. The severity filter passes almost everything through; only exact-duplicate lines get collapsed. A profile treating 2xx as noise and 4xx/5xx as signal is needed.
+- **Zookeeper** — `WARN`/`ERROR` lines each contain a unique thread ID (`RecvWorker:188978561024`), so identical events from different threads don't deduplicate. Stripping thread IDs before comparison would collapse these.
 
 ---
 
