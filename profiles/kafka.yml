@@ -1,0 +1,35 @@
+name: kafka
+match:
+  - "kafka"
+  - "Kafka"
+  - "KafkaController"
+  - "[Producer clientId"
+  - "[Consumer clientId"
+  - "kafka.server"
+
+noise_patterns:
+  - ".*Heartbeat request.*"
+  - ".*coordinator heartbeat.*"
+  - ".*fetch request.*"
+  - ".*ISR.*metadata.*"
+  - ".*UpdateMetadata.*"
+  - ".*LeaderAndIsr.*"
+  - ".*AbstractCoordinator.*Successfully joined.*"
+  - ".*ConsumerCoordinator.*Setting newly assigned partitions.*"
+  - ".*NetworkClient.*.*Completed.*request.*"
+  - ".*Metadata.*Cluster ID.*"
+  - ".*kafka\\.log\\.LogCleaner.*"
+  - ".*LogManager.*Completing recovery.*"
+  - ".*AbstractFetcherThread.*partition.*"
+
+signal_patterns:
+  - ".*LEADER_NOT_AVAILABLE.*"
+  - ".*NotLeaderForPartition.*"
+  - ".*RebalanceInProgress.*"
+  - ".*OffsetOutOfRange.*"
+  - ".*producer.*expired.*"
+  - ".*Failed to send.*"
+  - ".*Connection refused.*"
+  - ".*broker.*unavailable.*"
+
+stack_collapse: true

@@ -1,0 +1,37 @@
+name: kubernetes
+match:
+  - "kubernetes"
+  - "kubelet"
+  - "kube-proxy"
+  - "k8s.io"
+  - "controller-manager"
+  - "kube-apiserver"
+
+noise_patterns:
+  - ".*liveness.*probe.*"
+  - ".*readiness.*probe.*"
+  - ".*health.*check.*"
+  - ".*GET /healthz.*"
+  - ".*GET /readyz.*"
+  - ".*GET /livez.*"
+  - ".*SyncLoop.*"
+  - ".*NodeLease.*"
+  - ".*Heartbeat.*"
+  - ".*lease.*renewed.*"
+  - ".*Successfully.*pulled.*image.*"
+  - ".*Container.*already.*running.*"
+  - ".*SYNC.*"
+
+signal_patterns:
+  - ".*OOMKilled.*"
+  - ".*CrashLoopBackOff.*"
+  - ".*ImagePullBackOff.*"
+  - ".*Evicted.*"
+  - ".*Failed.*"
+  - ".*Error.*"
+  - ".*Warning.*"
+  - ".*BackOff.*"
+  - ".*Unhealthy.*"
+  - ".*NodeNotReady.*"
+
+stack_collapse: true

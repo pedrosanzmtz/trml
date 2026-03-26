@@ -1,0 +1,28 @@
+2024-01-15 10:00:00 INFO  Starting application version 1.2.3
+2024-01-15 10:00:00 INFO  Connecting to database at localhost:5432
+2024-01-15 10:00:00 INFO  Database connection established
+2024-01-15 10:00:01 DEBUG Processing request id=1001
+2024-01-15 10:00:01 DEBUG Processing request id=1002
+2024-01-15 10:00:01 DEBUG Processing request id=1003
+2024-01-15 10:00:01 DEBUG Processing request id=1004
+2024-01-15 10:00:01 DEBUG Processing request id=1005
+2024-01-15 10:00:02 INFO  Processed 100 requests
+2024-01-15 10:00:02 INFO  Processed 100 requests
+2024-01-15 10:00:02 INFO  Processed 100 requests
+2024-01-15 10:00:02 INFO  Processed 100 requests
+2024-01-15 10:00:02 INFO  Processed 100 requests
+2024-01-15 10:00:03 ERROR Failed to process request id=9999
+java.lang.RuntimeException: Connection timed out
+	at com.example.client.HttpClient.send(HttpClient.java:142)
+	at com.example.service.RequestHandler.handle(RequestHandler.java:87)
+	at com.example.service.RequestHandler.handle(RequestHandler.java:63)
+	at com.example.service.RequestHandler.handle(RequestHandler.java:41)
+	at com.example.service.RequestHandler.handle(RequestHandler.java:22)
+	at java.lang.Thread.run(Thread.java:748)
+2024-01-15 10:00:04 WARN  Retry limit reached for request id=9999
+2024-01-15 10:00:04 INFO  Health check OK
+2024-01-15 10:00:04 INFO  Health check OK
+2024-01-15 10:00:04 INFO  Health check OK
+2024-01-15 10:00:05 INFO  Processed 100 requests
+2024-01-15 10:00:06 INFO  Processed 100 requests
+2024-01-15 10:00:07 INFO  Processed 100 requests

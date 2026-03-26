@@ -1,0 +1,29 @@
+name: clickhouse
+match:
+  - "ClickHouse"
+  - "clickhouse"
+  - "MergeTree"
+  - "ReplicatedMergeTree"
+
+noise_patterns:
+  - ".*Background.*merge.*"
+  - ".*Merge.*parts.*"
+  - ".*Moving.*part.*"
+  - ".*Renaming.*part.*"
+  - ".*Loaded.*data.*part.*"
+  - ".*StorageReplicatedMergeTree.*log.*"
+  - ".*ZooKeeperSession.*keepalive.*"
+  - ".*executeQuery.*SELECT 1.*"
+  - ".*HTTPHandler.*200.*"
+  - ".*TCPHandler.*Ping.*"
+
+signal_patterns:
+  - ".*Exception.*"
+  - ".*Error.*"
+  - ".*Cannot.*"
+  - ".*REPLICA_IS_ALREADY_ACTIVE.*"
+  - ".*TOO_MANY_PARTS.*"
+  - ".*Memory limit.*"
+  - ".*Disk.*full.*"
+
+stack_collapse: true

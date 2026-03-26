@@ -1,0 +1,29 @@
+name: redis
+match:
+  - "redis"
+  - "Redis"
+  - "# Server"
+  - "redis-server"
+
+noise_patterns:
+  - ".*Background saving started.*"
+  - ".*DB saved on disk.*"
+  - ".*RDB.*saved.*"
+  - ".*AOF.*rewrite.*"
+  - ".*Saving the final RDB snapshot.*"
+  - ".*Accepted.*from.*"
+  - ".*Client.*closed.*connection.*"
+  - ".*server.*hz.*"
+  - ".*Config loaded.*"
+
+signal_patterns:
+  - ".*Out of memory.*"
+  - ".*MISCONF.*"
+  - ".*Cluster.*down.*"
+  - ".*Slave.*lost.*"
+  - ".*Connection.*refused.*"
+  - ".*Failed.*"
+  - ".*Error.*"
+  - ".*LOADING.*"
+
+stack_collapse: false

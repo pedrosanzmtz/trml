@@ -1,0 +1,26 @@
+2024-01-15 10:00:00,001 INFO [main] o.a.nifi.NiFiServer NiFi has started.
+2024-01-15 10:00:00,002 INFO [main] o.a.nifi.controller.FlowController Starting to run scheduled tasks
+2024-01-15 10:00:01,001 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:01,002 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:01,003 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:01,004 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:01,005 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:02,001 INFO [Checkpoint-1] o.a.nifi.repos.WriteAheadFlowFileRepository checkpoint complete in 12ms
+2024-01-15 10:00:02,002 INFO [Checkpoint-1] o.a.nifi.repos.WriteAheadFlowFileRepository checkpoint complete in 11ms
+2024-01-15 10:00:02,003 INFO [Checkpoint-1] o.a.nifi.repos.WriteAheadFlowFileRepository checkpoint complete in 10ms
+2024-01-15 10:00:03,001 ERROR [FlowEngine-1] o.a.nifi.processor.PutKafka Failed to send FlowFile to Kafka
+org.apache.kafka.common.errors.TimeoutException: Failed to update metadata after 60000 ms.
+	at org.apache.kafka.clients.producer.internals.Sender.run(Sender.java:238)
+	at org.apache.kafka.clients.producer.internals.Sender.run(Sender.java:163)
+	at java.lang.Thread.run(Thread.java:748)
+2024-01-15 10:00:04,001 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:04,002 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:04,003 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:05,001 WARN [FlowEngine-1] o.a.nifi.controller.BackPressure Queue is full (10000/10000)
+2024-01-15 10:00:06,001 INFO [ReportingTask-1] o.a.nifi.reporting.ReportingTaskNode status report generated
+2024-01-15 10:00:06,002 INFO [ReportingTask-1] o.a.nifi.reporting.ReportingTaskNode status report generated
+2024-01-15 10:00:07,001 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:07,002 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:07,003 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:07,004 INFO [Timer-1] o.a.nifi.processor.StandardProcessorNode heartbeat check OK
+2024-01-15 10:00:08,001 INFO [Checkpoint-1] o.a.nifi.repos.WriteAheadFlowFileRepository checkpoint complete in 9ms

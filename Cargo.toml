@@ -2,5 +2,25 @@
 name = "logslim"
 version = "0.1.0"
 edition = "2024"
+description = "Compress logs before they reach an LLM context window"
+license = "MIT"
+
+[[bin]]
+name = "logslim"
+path = "src/main.rs"
+
+[[bin]]
+name = "logslim-hook"
+path = "src/hook_bin.rs"
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+toml = "0.8"
+dirs = "5"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"

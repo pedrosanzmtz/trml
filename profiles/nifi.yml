@@ -1,0 +1,30 @@
+name: nifi
+match:
+  - "o.a.nifi"
+  - "NiFi"
+  - "FlowController"
+  - "WriteAheadFlowFileRepository"
+  - "StandardProcessorNode"
+
+noise_patterns:
+  - ".*StandardProcessorNode.*heartbeat.*"
+  - ".*WriteAheadFlowFileRepository.*checkpoint.*"
+  - ".*FlowController.*Starting to run.*"
+  - ".*ReportingTaskNode.*"
+  - ".*FlowFileRepository.*Syncing.*"
+  - ".*NiFiServer.*Starting.*NiFi.*"
+  - ".*Provenance Repository.*"
+  - ".*o\\.a\\.nifi.*INFO.*Finished.*in.*ms.*"
+  - ".*BouncyCastle.*"
+  - ".*TlsConfiguration.*"
+
+signal_patterns:
+  - ".*BackPressure.*"
+  - ".*PutKafka.*"
+  - ".*Failed to.*"
+  - ".*Connection refused.*"
+  - ".*FlowFile.*lost.*"
+  - ".*Bulletin.*"
+  - ".*ProcessorLifeCycle.*"
+
+stack_collapse: true
