@@ -1,0 +1,54 @@
+name: ssh
+match:
+  - "sshd["
+  - "pam_unix(sshd"
+  - "OpenSSH"
+  - "sshd:"
+
+# Replace variable fields (IPs, usernames, ports, PIDs) with stable
+# placeholders so the dedup stage can collapse brute-force patterns.
+normalize_patterns:
+  - pattern: "sshd\\[\\d+\\]"
+    replacement: "sshd[<pid>]"
+  - pattern: "Invalid user \\S+ from \\S+ port \\d+"
+    replacement: "Invalid user <user> from <ip> port <port>"
+  - pattern: "Invalid user \\S+ from \\S+"
+    replacement: "Invalid user <user> from <ip>"
+  - pattern: "Failed password for invalid user \\S+ from \\S+ port \\d+ \\S+"
+    replacement: "Failed password for invalid user <user> from <ip> port <port> ssh2"
+  - pattern: "Failed password for \\S+ from \\S+ port \\d+ \\S+"
+    replacement: "Failed password for <user> from <ip> port <port> ssh2"
+  - pattern: "pam_unix\\(sshd:auth\\): authentication failure;.*"
+    replacement: "pam_unix(sshd:auth): authentication failure"
+  - pattern: "pam_unix\\(sshd:auth\\): check pass; user unknown"
+    replacement: "pam_unix(sshd:auth): check pass; user unknown"
+  - pattern: "Received disconnect from \\S+ port \\d+:\\d+:.*"
+    replacement: "Received disconnect from <ip>"
+  - pattern: "Received disconnect from \\S+:\\d+:.*"
+    replacement: "Received disconnect from <ip>"
+  - pattern: "input_userauth_request: invalid user \\S+ \\[preauth\\]"
+    replacement: "input_userauth_request: invalid user <user> [preauth]"
+  - pattern: "Disconnecting invalid user \\S+ \\S+ port \\d+:.*"
+    replacement: "Disconnecting invalid user <user> <ip> port <port>"
+  - pattern: "Connection closed by \\S+ port \\d+ \\[preauth\\]"
+    replacement: "Connection closed by <ip> port <port> [preauth]"
+  - pattern: "Connection closed by \\S+ \\[preauth\\]"
+    replacement: "Connection closed by <ip> [preauth]"
+  - pattern: "Connection closed by invalid user \\S+ \\S+ port \\d+ \\[preauth\\]"
+    replacement: "Connection closed by invalid user <user> <ip> port <port> [preauth]"
+
+signal_patterns:
+  - "Accepted (password|publickey) for"
+  - "POSSIBLE BREAK-IN ATTEMPT"
+  - "session opened for user"
+  - "session closed for user"
+  - "Failed password for root"
+  - "sudo:"
+  - "PAM service\\(sshd\\) ignoring max retries"
+
+noise_patterns:
+  - "pam_unix\\(sshd:auth\\): check pass; user unknown"
+  - "PAM (\\d+ )?more authentication failure"
+  - "reverse mapping checking getaddrinfo"
+
+stack_collapse: false

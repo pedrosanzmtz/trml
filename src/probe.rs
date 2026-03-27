@@ -11,6 +11,7 @@ pub enum ServiceKind {
     MongoDB,
     Nginx,
     Elasticsearch,
+    Sshd,
     Generic,
 }
 
@@ -115,6 +116,9 @@ fn detect_service(lines: &[String]) -> ServiceKind {
     }
     if combined.contains("\"level\"") || combined.contains("\"msg\"") || combined.contains("\"message\"") {
         return ServiceKind::Python;
+    }
+    if combined.contains("sshd[") || combined.contains("pam_unix(sshd") || combined.contains("OpenSSH") {
+        return ServiceKind::Sshd;
     }
     ServiceKind::Generic
 }

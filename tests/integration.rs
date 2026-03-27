@@ -225,6 +225,109 @@ fn explicit_profile_flag() {
         .success();
 }
 
+// ── SSH profile ───────────────────────────────────────────────────────────────
+
+#[test]
+fn ssh_profile_collapses_brute_force() {
+    // 21 input lines; noise patterns drop 6 (pam check pass + PAM auth failures)
+    // leaving 15 — verify we emit fewer lines than we received.
+    let output = trml()
+        .arg("tests/fixtures/ssh-sample.log")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).unwrap();
+    let out_lines: Vec<&str> = text.lines().collect();
+    assert!(
+        out_lines.len() < 21,
+        "expected ssh log to be reduced; got {} output lines:\n{}",
+        out_lines.len(),
+        text
+    );
+}
+
+#[test]
+fn ssh_profile_dedup_collapses_consecutive_normalized_lines() {
+    // Feed many consecutive lines with different IPs/usernames/ports:
+    // after normalization they all map to the same form → dedup collapses them.
+    let lines: String = (0..20)
+        .map(|i| {
+            format!(
+                "Dec 10 07:{:02}:00 LabSZ sshd[{}]: Invalid user user{} from 10.0.0.{}\n",
+                i, 1000 + i, i, i
+            )
+        })
+        .collect();
+    let output = trml()
+        .arg("--profile").arg("ssh")
+        .write_stdin(lines)
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).unwrap();
+    let out_lines: Vec<&str> = text.lines().collect();
+    assert!(
+        out_lines.len() < 20,
+        "expected 20 normalized-identical lines to collapse via dedup; got {}:\n{}",
+        out_lines.len(),
+        text
+    );
+}
+
+#[test]
+fn ssh_profile_preserves_successful_logins() {
+    let output = trml()
+        .arg("tests/fixtures/ssh-sample.log")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).unwrap();
+    assert!(
+        text.contains("Accepted password for alice"),
+        "successful login must be preserved:\n{}", text
+    );
+}
+
+#[test]
+fn ssh_profile_preserves_session_events() {
+    let output = trml()
+        .arg("tests/fixtures/ssh-sample.log")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).unwrap();
+    assert!(
+        text.contains("session opened for user alice") || text.contains("session closed for user alice"),
+        "session events must be preserved:\n{}", text
+    );
+}
+
+#[test]
+fn ssh_normalize_placeholders_appear_in_output() {
+    // After normalization + dedup the collapsed line should show placeholders
+    let output = trml()
+        .arg("tests/fixtures/ssh-sample.log")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).unwrap();
+    // The normalized form should appear (with placeholder or repeated annotation)
+    assert!(
+        text.contains("<user>") || text.contains("<ip>") || text.contains("repeated"),
+        "expected normalized placeholders or repeat annotation in output:\n{}", text
+    );
+}
+
 // ── Hook binary ───────────────────────────────────────────────────────────────
 
 #[test]
