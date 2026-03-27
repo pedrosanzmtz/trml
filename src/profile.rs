@@ -2,6 +2,13 @@ use regex::Regex;
 use serde::Deserialize;
 use std::path::Path;
 
+/// A single normalization rule: replace `pattern` matches with `replacement`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct NormalizeRule {
+    pub pattern: String,
+    pub replacement: String,
+}
+
 /// Raw profile definition as parsed from YAML.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProfileDef {
@@ -15,6 +22,10 @@ pub struct ProfileDef {
     pub signal_patterns: Vec<String>,
     #[serde(default)]
     pub stack_collapse: bool,
+    /// Regex substitutions applied *before* dedup so variable parts (IPs,
+    /// usernames, ports) are collapsed into placeholders.
+    #[serde(default)]
+    pub normalize_patterns: Vec<NormalizeRule>,
 }
 
 /// Compiled profile ready for use.
@@ -25,6 +36,8 @@ pub struct Profile {
     pub noise_patterns: Vec<Regex>,
     pub signal_patterns: Vec<Regex>,
     pub stack_collapse: bool,
+    /// Compiled normalization rules (regex, replacement string).
+    pub normalize_rules: Vec<(Regex, String)>,
 }
 
 impl Profile {
@@ -39,13 +52,28 @@ impl Profile {
             .iter()
             .filter_map(|p| Regex::new(p).ok())
             .collect();
+        let normalize_rules = def
+            .normalize_patterns
+            .iter()
+            .filter_map(|r| Regex::new(&r.pattern).ok().map(|re| (re, r.replacement.clone())))
+            .collect();
         Self {
             name: def.name,
             match_strings: def.match_strings,
             noise_patterns,
             signal_patterns,
             stack_collapse: def.stack_collapse,
+            normalize_rules,
         }
+    }
+
+    /// Apply normalization rules to a line (used before the dedup stage).
+    pub fn normalize(&self, line: &str) -> String {
+        let mut result = line.to_string();
+        for (re, replacement) in &self.normalize_rules {
+            result = re.replace_all(&result, replacement.as_str()).into_owned();
+        }
+        result
     }
 
     /// Returns true if any of the sample lines contain a match string.
@@ -80,6 +108,7 @@ const BUNDLED: &[(&str, &str)] = &[
     ("nginx", include_str!("../profiles/nginx.yml")),
     ("gc", include_str!("../profiles/gc.yml")),
     ("elasticsearch", include_str!("../profiles/elasticsearch.yml")),
+    ("ssh", include_str!("../profiles/ssh.yml")),
 ];
 
 /// Load all bundled profiles.

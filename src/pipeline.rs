@@ -2,9 +2,10 @@ use crate::{
     config::Config,
     profile::Profile,
     stages::{
-        dedup, filter, profile_stage, stack, strip,
+        dedup, filter, normalize, profile_stage, stack, strip,
         dedup::DedupStage,
         filter::{FilterConfig, FilterStage},
+        normalize::NormalizeStage,
         profile_stage::ProfileStage,
         stack::StackStage,
         strip::StripStage,
@@ -115,12 +116,19 @@ fn build_stage_chain(
         sample_info: config.sample_info,
         sample_debug: config.sample_debug,
     };
-    let mut stages: Vec<Box<dyn Stage>> = vec![
-        Box::new(StripStage),
-        Box::new(DedupStage::new(config.dedup_threshold)),
-        Box::new(FilterStage::new(filter_cfg, config.context_lines)),
-        Box::new(StackStage::new(config.stack_keep_head)),
-    ];
+    let mut stages: Vec<Box<dyn Stage>> = vec![Box::new(StripStage)];
+
+    // Insert normalization before dedup when the profile has normalize rules.
+    if let Some(ref p) = profile {
+        if !p.normalize_rules.is_empty() {
+            stages.push(Box::new(NormalizeStage::new(p.normalize_rules.clone())));
+        }
+    }
+
+    stages.push(Box::new(DedupStage::new(config.dedup_threshold)));
+    stages.push(Box::new(FilterStage::new(filter_cfg, config.context_lines)));
+    stages.push(Box::new(StackStage::new(config.stack_keep_head)));
+
     if let Some(p) = profile {
         stages.push(Box::new(ProfileStage::new(p)));
     }
@@ -287,6 +295,17 @@ pub fn run(
 
     // Stage 1: Strip
     let lines = strip::process(filtered_input);
+
+    // Stage 1b: Normalize (apply profile substitutions before dedup)
+    let lines = if let Some(p) = profile {
+        if !p.normalize_rules.is_empty() {
+            normalize::process(lines, p)
+        } else {
+            lines
+        }
+    } else {
+        lines
+    };
 
     // Stage 2: Dedup
     let lines = dedup::process(lines, pipeline_config.dedup_threshold);
